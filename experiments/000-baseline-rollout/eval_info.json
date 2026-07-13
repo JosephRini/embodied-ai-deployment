@@ -1,0 +1,71 @@
+{
+  "per_task": [
+    {
+      "task_group": "pusht",
+      "task_id": 0,
+      "metrics": {
+        "sum_rewards": [
+          115.20714235237774,
+          0.0,
+          106.48747983917619,
+          90.41968444573325,
+          99.21312633350226
+        ],
+        "max_rewards": [
+          1.0,
+          0.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "successes": [
+          true,
+          false,
+          true,
+          true,
+          true
+        ],
+        "video_paths": [
+          "experiments/000-baseline-rollout/videos/pusht_0/eval_episode_0.mp4",
+          "experiments/000-baseline-rollout/videos/pusht_0/eval_episode_1.mp4",
+          "experiments/000-baseline-rollout/videos/pusht_0/eval_episode_2.mp4",
+          "experiments/000-baseline-rollout/videos/pusht_0/eval_episode_3.mp4",
+          "experiments/000-baseline-rollout/videos/pusht_0/eval_episode_4.mp4"
+        ],
+        "predicted_video_paths": []
+      }
+    }
+  ],
+  "per_group": {
+    "pusht": {
+      "avg_sum_reward": 82.26548659415789,
+      "avg_max_reward": 0.8,
+      "pc_success": 80.0,
+      "n_episodes": 5,
+      "video_paths": [
+        "experiments/000-baseline-rollout/videos/pusht_0/eval_episode_0.mp4",
+        "experiments/000-baseline-rollout/videos/pusht_0/eval_episode_1.mp4",
+        "experiments/000-baseline-rollout/videos/pusht_0/eval_episode_2.mp4",
+        "experiments/000-baseline-rollout/videos/pusht_0/eval_episode_3.mp4",
+        "experiments/000-baseline-rollout/videos/pusht_0/eval_episode_4.mp4"
+      ],
+      "predicted_video_paths": []
+    }
+  },
+  "overall": {
+    "avg_sum_reward": 82.26548659415789,
+    "avg_max_reward": 0.8,
+    "pc_success": 80.0,
+    "n_episodes": 5,
+    "eval_s": 955.7889957427979,
+    "eval_ep_s": 191.15779933929443,
+    "video_paths": [
+      "experiments/000-baseline-rollout/videos/pusht_0/eval_episode_0.mp4",
+      "experiments/000-baseline-rollout/videos/pusht_0/eval_episode_1.mp4",
+      "experiments/000-baseline-rollout/videos/pusht_0/eval_episode_2.mp4",
+      "experiments/000-baseline-rollout/videos/pusht_0/eval_episode_3.mp4",
+      "experiments/000-baseline-rollout/videos/pusht_0/eval_episode_4.mp4"
+    ],
+    "predicted_video_paths": []
+  }
+}
