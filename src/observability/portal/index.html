@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Observability Portal (V0)</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.1rem; margin-top: 2rem; border-bottom: 1px solid #ddd; padding-bottom: .3rem; }
+  .run-card { border: 1px solid #ddd; border-radius: 6px; padding: .75rem 1rem; margin-bottom: .5rem; cursor: pointer; }
+  .run-card:hover { background: #f7f7f7; }
+  .run-card.selected { border-color: #333; }
+  .badge { display: inline-block; padding: .1rem .5rem; border-radius: 4px; font-size: .8rem; font-weight: 600; }
+  .badge.pass { background: #d7f2df; color: #157a3c; }
+  .badge.fail { background: #fbdada; color: #a11d1d; }
+  .episode { border: 1px solid #eee; border-radius: 6px; padding: .75rem; margin-bottom: .75rem; }
+  .episode video { width: 100%; max-width: 320px; display: block; margin-top: .5rem; border-radius: 4px; }
+  table.config { border-collapse: collapse; font-size: .9rem; }
+  table.config td { border: 1px solid #eee; padding: .3rem .6rem; }
+  table.config td:first-child { color: #666; }
+  .not-instrumented, .lesson-plan { background: #fafafa; border: 1px dashed #bbb; border-radius: 6px; padding: 1rem; }
+  .not-instrumented ul { margin: .5rem 0 0 1.2rem; }
+  .lesson-plan .file-group { margin-bottom: .75rem; }
+  .lesson-plan .file-group h4 { margin: 0 0 .3rem; font-size: .85rem; color: #666; }
+  .lesson-plan label { display: block; font-size: .95rem; margin: .2rem 0; }
+  .lesson-plan input { margin-right: .5rem; }
+  .lesson-plan .checked { color: #999; text-decoration: line-through; }
+  .empty { color: #888; font-style: italic; }
+</style>
+</head>
+<body>
+
+<h1>Observability Portal — V0</h1>
+<p class="empty">Reads <code>experiments/</code> and <code>notes/</code> off disk on every request. No database, no auth, localhost only.</p>
+
+<h2>Runs</h2>
+<div id="runs"></div>
+
+<h2 id="detail-heading" style="display:none">Run detail</h2>
+<div id="config-panel"></div>
+<div id="episodes"></div>
+
+<h2>Lesson plan / to-dos</h2>
+<p class="empty">Pulled live from markdown checklists in <code>notes/*.md</code> — check them off there, not here.</p>
+<div id="lesson-plan" class="lesson-plan"></div>
+
+<h2>Not yet instrumented</h2>
+<div class="not-instrumented">
+  <p>This portal can only show what <code>lerobot-eval</code>'s stock output already contains. It cannot show:</p>
+  <ul>
+    <li>Per-step inference latency (how long each <code>select_action</code> call took)</li>
+    <li>Chunk boundaries (when a new action chunk was generated vs. which env steps consumed it)</li>
+    <li>Action staleness (how old the observation behind an executed action was by the time it ran)</li>
+    <li>Denoising-step-level timing inside the reverse-diffusion loop</li>
+    <li>Raw per-step state (agent/block pose) outside of decoding video frames by eye</li>
+    <li>Discarded predictions (the actions a chunk generated but never executed)</li>
+    <li>Per-step reward curve or divergence point for a failed episode</li>
+    <li>Compute utilization (CPU/MPS/memory) during a rollout</li>
+    <li>Sim-time vs. policy-inference-time split per step</li>
+    <li>Pre/post-processing overhead separate from model forward-pass time</li>
+    <li>Per-episode latency variance (only aggregate <code>eval_s</code> / <code>eval_ep_s</code> exist)</li>
+    <li>Statistical confidence on a success rate (no variance across seeds/N)</li>
+  </ul>
+  <p class="empty">This is the Module 4 to-do list, not a bug list — see <code>notes/2026-07-13.md</code> for the full writeup.</p>
+</div>
+
+<script>
+async function loadRuns() {
+  const runs = await (await fetch('/api/runs')).json();
+  const container = document.getElementById('runs');
+  if (runs.length === 0) {
+    container.innerHTML = '<p class="empty">No runs found under experiments/ (need an eval_info.json per run).</p>';
+    return;
+  }
+  container.innerHTML = '';
+  runs.forEach(run => {
+    const div = document.createElement('div');
+    div.className = 'run-card';
+    div.id = `run-${run.run_id}`;
+    const date = new Date(run.date * 1000).toLocaleString();
+    div.innerHTML = `
+      <strong>${run.run_id}</strong> — ${date}<br>
+      checkpoint: ${run.checkpoint ?? '<span class="empty">not found (checkpoints/ is gitignored)</span>'}<br>
+      ${run.n_episodes} episodes, ${run.pc_success.toFixed(0)}% success (N=${run.n_episodes})
+    `;
+    div.onclick = () => loadRunDetail(run.run_id);
+    container.appendChild(div);
+  });
+  loadRunDetail(runs[0].run_id);
+}
+
+async function loadRunDetail(runId) {
+  document.querySelectorAll('.run-card').forEach(el => el.classList.remove('selected'));
+  document.getElementById(`run-${runId}`)?.classList.add('selected');
+
+  const data = await (await fetch(`/api/runs/${runId}`)).json();
+  document.getElementById('detail-heading').style.display = 'block';
+  document.getElementById('detail-heading').textContent = `Run detail — ${runId}`;
+
+  const configDiv = document.getElementById('config-panel');
+  if (data.config) {
+    const rows = Object.entries(data.config).map(([k, v]) =>
+      `<tr><td>${k}</td><td>${JSON.stringify(v)}</td></tr>`).join('');
+    configDiv.innerHTML = `
+      <h3>Config — ${data.checkpoint}</h3>
+      <table class="config">${rows}</table>
+      <p class="empty">Verify these against <code>experiments/${runId}/checkpoints/${data.checkpoint}/config.json</code> by hand.</p>
+    `;
+  } else {
+    configDiv.innerHTML = '<p class="empty">No checkpoint config found for this run (checkpoints/ is gitignored — not present on a fresh clone).</p>';
+  }
+
+  const episodesDiv = document.getElementById('episodes');
+  episodesDiv.innerHTML = `<h3>Episodes (${data.aggregate.n_episodes}, ${data.aggregate.pc_success.toFixed(0)}% success)</h3>`;
+  data.episodes.forEach(ep => {
+    const div = document.createElement('div');
+    div.className = 'episode';
+    const badge = ep.success ? '<span class="badge pass">PASS</span>' : '<span class="badge fail">FAIL</span>';
+    div.innerHTML = `
+      ${badge} Episode ${ep.index} — reward ${ep.sum_reward.toFixed(2)} (max ${ep.max_reward.toFixed(2)}),
+      ${ep.length_steps ?? '?'} steps
+      <video controls src="${ep.video_url}"></video>
+    `;
+    episodesDiv.appendChild(div);
+  });
+}
+
+async function loadTodos() {
+  const groups = await (await fetch('/api/todos')).json();
+  const container = document.getElementById('lesson-plan');
+  if (groups.length === 0) {
+    container.innerHTML = '<p class="empty">No checklist items found in notes/*.md.</p>';
+    return;
+  }
+  container.innerHTML = '';
+  groups.forEach(group => {
+    const div = document.createElement('div');
+    div.className = 'file-group';
+    const items = group.items.map(item => `
+      <label class="${item.checked ? 'checked' : ''}">
+        <input type="checkbox" disabled ${item.checked ? 'checked' : ''}>${item.text}
+      </label>
+    `).join('');
+    div.innerHTML = `<h4>${group.file}</h4>${items}`;
+    container.appendChild(div);
+  });
+}
+
+loadRuns();
+loadTodos();
+</script>
+</body>
+</html>

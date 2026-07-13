@@ -67,13 +67,20 @@ The objective: given the real demonstration's action chunk with some random amou
 
 A step is a *window*, not an instant — history in, chunk out.
 
-**Input** (toy numbers, standard Diffusion Policy PushT defaults — verify against this checkpoint's actual `config.json`):
+**Verified against `lerobot/diffusion_pusht`'s actual `config.json`** (not toy
+defaults — pulled directly from the checkpoint):
+`n_obs_steps=2`, `horizon=16`, `n_action_steps=8`, image `observation.image`
+shape `(3, 96, 96)`, state `observation.state` shape `(2,)`, action shape
+`(2,)`. The toy numbers below turned out exactly right for the *raw* input
+shapes — one real detail they missed entirely, covered after the tables.
+
+**Raw input** (what arrives in the observation dict, per obs. timestep):
 
 | Stream | Per-timestep size | × 2 obs. timesteps (history) |
 |---|---|---|
 | Image (96×96×3) | 27,648 | 55,296 |
 | Agent (pusher) x,y | 2 | 4 |
-| **Total input** | | **~55,300** |
+| **Total raw input** | | **~55,300** |
 
 **Output:**
 
@@ -81,17 +88,39 @@ A step is a *window*, not an instant — history in, chunk out.
 |---|---|---|
 | Action (target x,y) | 2 | 32 |
 
-Of the 16 predicted future actions, typically only ~8 actually get executed before the sim has moved on enough to warrant a fresh inference call — the sync/async chunk-execution trade-off from the LeRobot tutorial.
+Of the 16 predicted future actions, exactly 8 (`n_action_steps`) actually get
+executed before the queue empties and a fresh inference call triggers — not
+an approximation, the checkpoint's own config fixes this at 8.
 
-**Five conceptually distinct variables in play, dimensionally dominated by pixels:**
-1. Current image
-2. Previous image (history)
+**The correction the toy tables missed: raw pixels never reach the U-Net.**
+`config.json` also sets `crop_shape=[84,84]` and `vision_backbone=resnet18`
+with `spatial_softmax_num_keypoints=32`. At eval time the encoder *always*
+center-crops to 84×84 (`crop_is_random=True` only applies during
+`.training` — see `modeling_diffusion.py:548-553`), runs it through a
+ResNet18 + spatial-softmax pooling + linear layer, and out comes a **64-dim**
+feature vector (`spatial_softmax_num_keypoints * 2`) — not 27,648 pixels.
+Concatenated with the 2-dim state, that's 66 per obs. step, × 2 obs. steps =
+**132-dim total** — this is the actual `global_cond` vector conditioning
+every one of the 100 denoising steps (`_prepare_global_conditioning`,
+`modeling_diffusion.py:269`), not the ~55,300 raw numbers.
+
+**Five conceptually distinct variables in play:**
+1. Current image (→ encoded to 64 image-features, not used raw)
+2. Previous image (history, → also encoded to 64 features)
 3. Current agent x,y
 4. Previous agent x,y
-5. The diffusion noise-level/timestep — internal to the denoising process, threaded through every one of the ~dozens of internal forward passes. Has no equivalent in a simple regression policy.
+5. The diffusion noise-level/timestep — internal to the denoising process, threaded through every one of the 100 internal forward passes (`num_train_timesteps=100`, `num_inference_steps=null` falls back to it). Has no equivalent in a simple regression policy.
 → Output: 16 future (x,y) action pairs, predicted jointly as one chunk.
 
-**The imbalance worth remembering:** ~55,296 of ~55,300 input numbers are pixels. State and action are a rounding error dimensionally — yet they carry real, load-bearing meaning (unlike an LLM, where nothing analogous to "agent position" exists at all). This is part of why vision encoders dominate these models' parameter budgets.
+**The imbalance worth remembering, corrected:** ~55,296 of ~55,300 *raw*
+input numbers are pixels — that part of the toy framing was right. But the
+network the U-Net actually conditions on is only 132-dim, roughly balanced
+between image-derived (128 = 64 × 2 steps) and state (4 = 2 × 2 steps)
+features — the huge pixel count is *compressed away* by the vision encoder
+before conditioning happens. Vision encoders dominate the parameter budget
+not because raw pixels flow through the U-Net, but because turning 27,648
+pixels into a useful 64-dim summary is where most of the model's capacity is
+spent.
 
 ## Corrections — two imprecisions worth locking in
 
@@ -131,6 +160,6 @@ robot actions instead of pixels."*
 
 ## Open thread — to verify
 
-- [ ] Pull actual `config.json` values for `lerobot/diffusion_pusht`: obs history length (`n_obs_steps`), action chunk length (`horizon` / `n_action_steps`), image resolution, state dimension. Swap real numbers in for the toy defaults above.
+- [x] Pull actual `config.json` values for `lerobot/diffusion_pusht`: obs history length (`n_obs_steps`), action chunk length (`horizon` / `n_action_steps`), image resolution, state dimension. Swap real numbers in for the toy defaults above. — done: all toy numbers matched exactly, but found one real detail the toys missed (image gets cropped to 84×84 and encoded down to a 64-dim vector before the U-Net ever sees it — see the "at play" section above).
 - [ ] Watch `eval_episode_1.mp4` (the one failure, reward 0.0) — did it get stuck, overshoot, or oscillate? Raw visual intuition before any instrumentation exists.
 - [ ] Rerun eval with N=20–50 episodes before quoting a success rate anywhere public — n=5 is too small to trust (80% could easily be 60% or 100%).
