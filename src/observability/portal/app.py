@@ -13,6 +13,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import uvicorn
 
+from observability.portal.curriculum import MODULES
+
 ROOT = Path(__file__).resolve().parents[3]
 EXPERIMENTS_DIR = ROOT / "experiments"
 NOTES_DIR = ROOT / "notes"
@@ -27,6 +29,7 @@ CONFIG_FIELDS = [
 
 app = FastAPI(title="Observability Portal (V0)")
 app.mount("/media", StaticFiles(directory=EXPERIMENTS_DIR), name="media")
+app.mount("/notes", StaticFiles(directory=NOTES_DIR), name="notes")
 
 
 def _video_url(video_path: str) -> str:
@@ -107,16 +110,22 @@ def run_detail(run_id: str):
     per_task = eval_info["per_task"][0]["metrics"]
     overall = eval_info["overall"]
 
+    # lerobot-eval caps rendered videos at 10 regardless of n_episodes
+    # (max_episodes_rendered in lerobot_eval.py), so video_paths can be
+    # shorter than successes/sum_rewards/max_rewards. Iterate over the
+    # metrics length, not the video count, or episodes 10+ silently vanish.
+    video_paths = per_task["video_paths"]
     episodes = []
-    for i, video_path in enumerate(per_task["video_paths"]):
+    for i in range(len(per_task["successes"])):
+        video_path = video_paths[i] if i < len(video_paths) else None
         episodes.append(
             {
                 "index": i,
                 "success": per_task["successes"][i],
                 "sum_reward": per_task["sum_rewards"][i],
                 "max_reward": per_task["max_rewards"][i],
-                "length_steps": _episode_length(video_path),
-                "video_url": _video_url(video_path),
+                "length_steps": _episode_length(video_path) if video_path else None,
+                "video_url": _video_url(video_path) if video_path else None,
             }
         )
 
@@ -161,6 +170,13 @@ def list_todos():
         if items:
             groups.append({"file": md_file.name, "items": items})
     return groups
+
+
+@app.get("/api/curriculum")
+def list_curriculum():
+    """Interim module overview — see curriculum.py's docstring. Not derived
+    from a formal source yet; that's CURRICULUM.md, still pending."""
+    return MODULES
 
 
 @app.get("/")

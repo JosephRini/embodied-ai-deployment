@@ -26,12 +26,26 @@
   .lesson-plan input { margin-right: .5rem; }
   .lesson-plan .checked { color: #999; text-decoration: line-through; }
   .empty { color: #888; font-style: italic; }
+  .curriculum { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .75rem; }
+  .module-card { border: 1px solid #ddd; border-radius: 8px; padding: .9rem 1rem; }
+  .module-card h3 { margin: .1rem 0 .4rem; font-size: 1rem; }
+  .module-card p { margin: 0; font-size: .85rem; color: #444; }
+  .module-card a { font-size: .8rem; }
+  .status { display: inline-block; padding: .1rem .5rem; border-radius: 4px; font-size: .7rem; font-weight: 600; text-transform: uppercase; margin-bottom: .3rem; }
+  .status.done { background: #d7f2df; color: #157a3c; }
+  .status.in_progress { background: #fff3cd; color: #8a6d00; }
+  .status.seeded { background: #dbe9fb; color: #1c5aa6; }
+  .status.not_started { background: #eee; color: #777; }
 </style>
 </head>
 <body>
 
 <h1>Observability Portal — V0</h1>
 <p class="empty">Reads <code>experiments/</code> and <code>notes/</code> off disk on every request. No database, no auth, localhost only.</p>
+
+<h2>Curriculum</h2>
+<p class="empty">Interim overview, hand-maintained until <code>CURRICULUM.md</code> exists (Session 3) — cross-check against <code>README.md</code>/<code>notes/</code> if this looks stale.</p>
+<div id="curriculum" class="curriculum"></div>
 
 <h2>Runs</h2>
 <div id="runs"></div>
@@ -116,10 +130,13 @@ async function loadRunDetail(runId) {
     const div = document.createElement('div');
     div.className = 'episode';
     const badge = ep.success ? '<span class="badge pass">PASS</span>' : '<span class="badge fail">FAIL</span>';
+    const video = ep.video_url
+      ? `<video controls src="${ep.video_url}"></video>`
+      : '<p class="empty">No video for this episode (lerobot-eval caps rendered videos at 10 regardless of n_episodes).</p>';
     div.innerHTML = `
       ${badge} Episode ${ep.index} — reward ${ep.sum_reward.toFixed(2)} (max ${ep.max_reward.toFixed(2)}),
       ${ep.length_steps ?? '?'} steps
-      <video controls src="${ep.video_url}"></video>
+      ${video}
     `;
     episodesDiv.appendChild(div);
   });
@@ -146,6 +163,26 @@ async function loadTodos() {
   });
 }
 
+async function loadCurriculum() {
+  const modules = await (await fetch('/api/curriculum')).json();
+  const container = document.getElementById('curriculum');
+  container.innerHTML = '';
+  modules.forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'module-card';
+    const statusLabel = m.status.replace('_', ' ');
+    const link = m.note ? `<a href="/notes/${m.note.split('/').pop()}" target="_blank">${m.note}</a>` : '';
+    div.innerHTML = `
+      <span class="status ${m.status}">${statusLabel}</span>
+      <h3>Module ${m.id} — ${m.title}</h3>
+      <p>${m.summary}</p>
+      ${link ? `<p>${link}</p>` : ''}
+    `;
+    container.appendChild(div);
+  });
+}
+
+loadCurriculum();
 loadRuns();
 loadTodos();
 </script>
