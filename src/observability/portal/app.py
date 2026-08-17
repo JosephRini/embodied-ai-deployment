@@ -5,6 +5,7 @@ directory for the "how to verify this is telling the truth" check.
 
 import json
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 
 import cv2
@@ -13,11 +14,11 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import uvicorn
 
-from observability.portal.curriculum import MODULES
-
 ROOT = Path(__file__).resolve().parents[3]
 EXPERIMENTS_DIR = ROOT / "experiments"
 NOTES_DIR = ROOT / "notes"
+COURSE_JSON_PATH = ROOT / "course.json"
+PORTAL_STATIC_DIR = Path(__file__).parent / "static"
 
 CONFIG_FIELDS = [
     "n_obs_steps",
@@ -30,6 +31,12 @@ CONFIG_FIELDS = [
 app = FastAPI(title="Observability Portal (V0)")
 app.mount("/media", StaticFiles(directory=EXPERIMENTS_DIR), name="media")
 app.mount("/notes", StaticFiles(directory=NOTES_DIR), name="notes")
+# The portal's own assets (vendored JS, hand-drawn concept graphics).
+app.mount("/assets", StaticFiles(directory=PORTAL_STATIC_DIR), name="assets")
+# Read-only view of the whole repo, for course-home artifact links (lesson
+# markdown source, plain files). Same trust model as /media and /notes above:
+# localhost-only, no auth, single user — see README.md.
+app.mount("/repo", StaticFiles(directory=ROOT), name="repo")
 
 
 def _video_url(video_path: str) -> str:
@@ -172,11 +179,94 @@ def list_todos():
     return groups
 
 
-@app.get("/api/curriculum")
-def list_curriculum():
-    """Interim module overview — see curriculum.py's docstring. Not derived
-    from a formal source yet; that's CURRICULUM.md, still pending."""
-    return MODULES
+def _artifact_status(artifact: dict) -> dict:
+    """Resolve one course.json artifact against the filesystem, right now.
+    `path` is an exact file; `glob` is a pattern (possibly with no wildcard
+    at all, in which case it behaves like an exact-existence check)."""
+    if "path" in artifact:
+        matches = [artifact["path"]] if (ROOT / artifact["path"]).exists() else []
+    else:
+        matches = [p.relative_to(ROOT).as_posix() for p in ROOT.glob(artifact["glob"])]
+        matches.sort()
+
+    exists = len(matches) > 0
+    kind = artifact["kind"]
+    link = None
+    if exists:
+        first = matches[0]
+        if kind == "experiment":
+            # experiments/<run_id>/... -> link by run_id, into the existing
+            # run view, rather than a second experiment viewer.
+            parts = Path(first).parts
+            if len(parts) >= 2 and parts[0] == "experiments":
+                link = {"type": "experiment", "run_id": parts[1]}
+        elif kind == "lesson":
+            link = {"type": "lesson", "path": first}
+        else:
+            link = {"type": "file", "path": first}
+
+    return {
+        "label": artifact["label"],
+        "kind": kind,
+        "declared_path": artifact.get("path") or artifact.get("glob"),
+        "exists": exists,
+        "next_action": artifact.get("next_action"),
+        "link": link,
+    }
+
+
+def _act_status(artifacts: list[dict]) -> str:
+    done_count = sum(1 for a in artifacts if a["exists"])
+    if done_count == 0:
+        return "not_started"
+    if done_count == len(artifacts):
+        return "done"
+    return "in_progress"
+
+
+@app.get("/api/course")
+def get_course():
+    """Computed course state: every artifact glob in course.json is checked
+    against the filesystem on every request. Nothing here is a manually-set
+    status field — see CURRICULUM.md for the human-readable version of the
+    same five acts."""
+    if not COURSE_JSON_PATH.exists():
+        return {"error": f"course.json not found at {COURSE_JSON_PATH}"}
+    try:
+        manifest = json.loads(COURSE_JSON_PATH.read_text())
+    except json.JSONDecodeError as e:
+        return {"error": f"course.json at {COURSE_JSON_PATH} is not valid JSON: {e}"}
+
+    acts = []
+    first_incomplete = None
+    for act in manifest["acts"]:
+        artifacts = [_artifact_status(a) for a in act["artifacts"]]
+        status = _act_status(artifacts)
+        if status != "done" and first_incomplete is None:
+            first_incomplete = act["id"]
+        acts.append(
+            {
+                "id": act["id"],
+                "title": act["title"],
+                "short_title": act.get("short_title", act["title"]),
+                "question": act["question"],
+                "lesson": act["lesson"],
+                "claim": act["claim"],
+                "graphic": act.get("graphic"),
+                "status": status,
+                "done_count": sum(1 for a in artifacts if a["exists"]),
+                "total_count": len(artifacts),
+                "artifacts": artifacts,
+            }
+        )
+
+    return {
+        "environment": manifest.get("environment"),
+        "thesis": manifest.get("thesis"),
+        "computed_at": datetime.now(timezone.utc).isoformat(),
+        "you_are_here": first_incomplete,
+        "acts": acts,
+    }
 
 
 @app.get("/")

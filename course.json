@@ -1,0 +1,184 @@
+{
+  "version": 1,
+  "environment": "metaworld",
+  "thesis": "Take an open robot policy from checkpoint to a deployable, observable system — entirely in simulation — and prove every claim with evidence, not a demo video.",
+  "acts": [
+    {
+      "id": 1,
+      "title": "Run someone else's robot",
+      "short_title": "Run it",
+      "question": "What does a downloaded policy actually do, and can you trust the number it produces?",
+      "lesson": "A number without N is noise.",
+      "maps_from_modules": [0, 2],
+      "graphic": "static/graphics/act1.svg",
+      "artifacts": [
+        {
+          "label": "Pinned environment",
+          "path": "uv.lock",
+          "kind": "infra"
+        },
+        {
+          "label": "Baseline eval n=50",
+          "glob": "experiments/001-baseline-rollout-n50/**",
+          "kind": "experiment"
+        },
+        {
+          "label": "Evaluation-is-measurement lesson",
+          "glob": "writeups/lessons/eval.md",
+          "kind": "lesson",
+          "next_action": "Write up the n=50 Clopper-Pearson result (78%, 95% CI [64.0%, 88.5%]) as writeups/lessons/eval.md, drawing from notes/2026-07-14.md."
+        },
+        {
+          "label": "Everything-we-could-not-see list",
+          "glob": "writeups/lessons/could-not-see.md",
+          "kind": "lesson",
+          "next_action": "Promote the portal's 'Not yet instrumented' list (and notes/2026-07-13.md) into writeups/lessons/could-not-see.md."
+        }
+      ],
+      "claim": "Evaluated a pretrained diffusion-based policy over 50 episodes with a Clopper-Pearson interval."
+    },
+    {
+      "id": 2,
+      "title": "Understand what you ran",
+      "short_title": "Understand it",
+      "question": "What is the data, and what does training actually do?",
+      "lesson": "A policy is fit to demonstrations.",
+      "maps_from_modules": [1, 2],
+      "graphic": "static/graphics/act2.svg",
+      "artifacts": [
+        {
+          "label": "Dataset-internals lesson",
+          "glob": "writeups/lessons/dataset-internals.md",
+          "kind": "lesson",
+          "next_action": "Write up the policy formula π(a_t | o_t, s_t, l) and LeRobotDataset structure as writeups/lessons/dataset-internals.md, drawing from notes/2026-07-13-lesson-diffusion-policy-pusht.md."
+        },
+        {
+          "label": "Classical-vocabulary note",
+          "glob": "writeups/lessons/classical-vocabulary.md",
+          "kind": "lesson",
+          "next_action": "Write the classical-control-vs-imitation-learning vocabulary note as writeups/lessons/classical-vocabulary.md."
+        },
+        {
+          "label": "ACT training run",
+          "glob": "outputs/train/act_*/checkpoints/**",
+          "kind": "training",
+          "next_action": "Train ACT on the PushT dataset (still open per notes/2026-07-13-lesson-diffusion-policy-pusht.md) and land the checkpoint under outputs/train/act_<run>/checkpoints/."
+        },
+        {
+          "label": "ACT eval experiment",
+          "glob": "experiments/0*-act*/**",
+          "kind": "experiment",
+          "next_action": "Evaluate the trained ACT checkpoint the same way as the diffusion baseline (N episodes, Clopper-Pearson interval) and land it under experiments/."
+        }
+      ],
+      "claim": "Trained and evaluated ACT; compared against the pretrained Diffusion Policy baseline on the same task."
+    },
+    {
+      "id": 3,
+      "title": "Inherit a foundation model",
+      "short_title": "Inherit it",
+      "question": "What does it take to get a checkpoint you didn't train running on your task?",
+      "lesson": "A checkpoint is a contract, not just weights.",
+      "maps_from_modules": [3],
+      "graphic": "static/graphics/act3.svg",
+      "artifacts": [
+        {
+          "label": "Flow-matching mechanism lesson",
+          "glob": "writeups/lessons/flow-matching.md",
+          "kind": "lesson",
+          "next_action": "Write up SmolVLA's flow-matching mechanism (VLAFlowMatching.forward/sample_actions) as writeups/lessons/flow-matching.md."
+        },
+        {
+          "label": "Feature-contract lesson",
+          "glob": "writeups/lessons/feature-contract.md",
+          "kind": "lesson",
+          "next_action": "Write up the config-contract finding (notes/2026-08-17.md: smolvla_base vs. PushT, smolvla_metaworld vs. metaworld_mt50) as writeups/lessons/feature-contract.md."
+        },
+        {
+          "label": "Pre-flight inspection script",
+          "glob": "src/inspection/*.py",
+          "kind": "infra",
+          "next_action": "Write the checkpoint-vs-env feature-contract diff script in src/inspection/, using smolvla_base/pusht and smolvla_metaworld/metaworld_mt50 as the two known-mismatch fixtures."
+        },
+        {
+          "label": "First Meta-World VLA eval",
+          "glob": "experiments/0*-*metaworld*/**",
+          "kind": "experiment",
+          "next_action": "Once the pre-flight script passes, run the first SmolVLA-on-Meta-World eval and land it under experiments/."
+        }
+      ],
+      "claim": "Adapted a pretrained SmolVLA checkpoint to run on Meta-World, verifying its declared feature contract against the environment before evaluating."
+    },
+    {
+      "id": 4,
+      "title": "See it, break it, fix it",
+      "short_title": "Fix it",
+      "question": "When it fails a customer's threshold, can you diagnose, collect, fine-tune, and prove the fix?",
+      "lesson": "You fix what you can measure.",
+      "maps_from_modules": [4, 5, 6],
+      "graphic": "static/graphics/act4.svg",
+      "artifacts": [
+        {
+          "label": "Serving layer",
+          "glob": "src/serving/*.py",
+          "kind": "infra",
+          "next_action": "Build the client/server inference layer in src/serving/."
+        },
+        {
+          "label": "Rollout timeline",
+          "glob": "src/observability/**/*timeline*.py",
+          "kind": "infra",
+          "next_action": "Build the replayable rollout timeline (camera frames, predicted vs. executed actions, latency, staleness) in src/observability/."
+        },
+        {
+          "label": "Customer spec",
+          "glob": "writeups/customer-spec.md",
+          "kind": "doc",
+          "next_action": "Write the stated acceptance spec (the threshold the fine-tune must clear) as writeups/customer-spec.md."
+        },
+        {
+          "label": "Perturbation experiment",
+          "glob": "experiments/*perturbation*/**",
+          "kind": "experiment",
+          "next_action": "Run the perturbation experiment that exposes the baseline failure against the customer spec."
+        },
+        {
+          "label": "Targeted dataset",
+          "glob": "datasets/*targeted*/**",
+          "kind": "dataset",
+          "next_action": "Collect the targeted dataset aimed at the diagnosed failure mode."
+        },
+        {
+          "label": "Fine-tune run",
+          "glob": "outputs/train/*finetune*/checkpoints/**",
+          "kind": "training",
+          "next_action": "Fine-tune on the targeted dataset and land the checkpoint under outputs/train/."
+        },
+        {
+          "label": "Before/after acceptance report",
+          "glob": "src/acceptance/reports/**",
+          "kind": "report",
+          "next_action": "Generate the before/after acceptance report against the customer spec via src/acceptance/."
+        }
+      ],
+      "claim": "Diagnosed a policy failure against a stated threshold, collected targeted data, fine-tuned, and reported a before/after acceptance result."
+    },
+    {
+      "id": 5,
+      "title": "Tell the story",
+      "short_title": "Tell it",
+      "question": "Can the repo be retold as a 10-minute engineering narrative?",
+      "lesson": "Evidence over narrative.",
+      "maps_from_modules": [7],
+      "artifacts": [
+        {
+          "label": "Case study writeup",
+          "glob": "writeups/case-study.md",
+          "kind": "lesson",
+          "next_action": "Write the case study, citing only artifacts that exist elsewhere in this repo."
+        }
+      ],
+      "claim": "Retold the project as a 10-minute engineering narrative, backed by the evidence already in this repo."
+    }
+  ]
+}

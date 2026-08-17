@@ -14,6 +14,13 @@ Then open http://127.0.0.1:8792/.
 
 ## What it shows
 
+- **Course home** — the five acts from `course.json` (repo root), with every
+  act's status *computed* live from the filesystem: an act is "done" only
+  when every one of its `artifacts` globs matches something on disk, never
+  from a stored flag. Lessons open in an in-portal reader (rendered from the
+  raw markdown via a vendored `marked.js`); experiments link into the Runs
+  section below; everything else links to the raw file. See
+  `../../../CURRICULUM.md` for the same five acts as prose.
 - **Runs** — any `experiments/<run>/` directory containing an `eval_info.json`.
 - **Config panel** — best-effort read of `experiments/<run>/checkpoints/*/config.json`
   (prefers a migrated checkpoint with `policy_preprocessor.json` if more than
@@ -44,3 +51,12 @@ For the config panel: open
 `experiments/<run>/checkpoints/<checkpoint>/config.json` directly and compare
 `n_obs_steps`, `horizon`, `n_action_steps`, etc. against what the panel shows
 — they're read from the exact same file, no caching.
+
+For the course home's computed status: pick any artifact still marked "not
+yet earned" in an in-progress act — e.g. `writeups/lessons/eval.md` under
+Act 1 — and `touch` a file matching its glob. Reload the page: that artifact
+flips to done, the act's `done_count` increments, and once every artifact in
+the act exists the lesson reveals and the act's claim appears in the claims
+strip. Delete the file and reload again — it reverts. Nothing is cached
+between requests, so there's no state to get out of sync with the
+filesystem.

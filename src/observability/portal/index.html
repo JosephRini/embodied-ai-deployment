@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Observability Portal (V0)</title>
+<script src="/assets/js/marked-18.0.9.umd.js"></script>
 <style>
   body { font-family: -apple-system, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
   h1 { font-size: 1.4rem; }
@@ -26,26 +27,96 @@
   .lesson-plan input { margin-right: .5rem; }
   .lesson-plan .checked { color: #999; text-decoration: line-through; }
   .empty { color: #888; font-style: italic; }
-  .curriculum { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .75rem; }
-  .module-card { border: 1px solid #ddd; border-radius: 8px; padding: .9rem 1rem; }
-  .module-card h3 { margin: .1rem 0 .4rem; font-size: 1rem; }
-  .module-card p { margin: 0; font-size: .85rem; color: #444; }
-  .module-card a { font-size: .8rem; }
+
+  /* status pill, shared by act cards and (formerly) module cards */
   .status { display: inline-block; padding: .1rem .5rem; border-radius: 4px; font-size: .7rem; font-weight: 600; text-transform: uppercase; margin-bottom: .3rem; }
   .status.done { background: #d7f2df; color: #157a3c; }
   .status.in_progress { background: #fff3cd; color: #8a6d00; }
-  .status.seeded { background: #dbe9fb; color: #1c5aa6; }
   .status.not_started { background: #eee; color: #777; }
+
+  /* course home */
+  #course-header { margin-top: 1.5rem; }
+  #course-header .thesis { font-size: 1.05rem; margin: .2rem 0 .1rem; }
+  #course-header .computed-at { font-size: .75rem; color: #999; }
+
+  .claims-strip { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1rem 0; }
+  .claim-pill { border-radius: 999px; padding: .35rem .9rem; font-size: .82rem; }
+  .claim-pill.earned { background: #d7f2df; color: #157a3c; border: 1px solid #a9dfba; }
+  .claim-pill.locked { background: transparent; color: #888; border: 1px dashed #bbb; }
+
+  .spine { display: flex; gap: .4rem; margin: 1.2rem 0; }
+  .spine-segment { flex: 1; text-align: center; cursor: pointer; }
+  .spine-bar { height: 6px; border-radius: 3px; background: #eee; border: 1px solid #ddd; }
+  .spine-bar.done { background: #6fc98a; border-color: #157a3c; }
+  .spine-bar.in_progress { background: #ffe08a; border-color: #8a6d00; }
+  .spine-label { font-size: .72rem; color: #666; margin-top: .3rem; }
+  .spine-segment.here .spine-label { color: #1a1a1a; font-weight: 700; }
+
+  .act-card { border: 1px solid #ddd; border-radius: 8px; margin-bottom: .75rem; overflow: hidden; }
+  .act-card-header { padding: .8rem 1rem; cursor: pointer; display: flex; align-items: center; gap: .6rem; }
+  .act-card-header:hover { background: #fafafa; }
+  .act-card-header h3 { margin: 0; font-size: 1rem; flex: 1; }
+  .act-fraction { font-size: .8rem; color: #888; }
+  .here-tag { background: #1c5aa6; color: #fff; font-size: .65rem; font-weight: 700; text-transform: uppercase; padding: .1rem .4rem; border-radius: 4px; }
+  .act-card-body { padding: 0 1.1rem 1.1rem; display: none; }
+  .act-card.expanded .act-card-body { display: block; }
+  .act-question { font-family: Georgia, "Times New Roman", serif; font-style: italic; font-size: 1.1rem; color: #333; margin: 0 0 1rem; padding-left: .7rem; border-left: 3px solid #ddd; }
+
+  .artifact-row { display: flex; align-items: center; gap: .6rem; padding: .45rem 0; border-bottom: 1px solid #f0f0f0; font-size: .88rem; }
+  .artifact-row:last-child { border-bottom: none; }
+  .artifact-icon { flex-shrink: 0; width: 1.1rem; text-align: center; }
+  .artifact-icon.exists { color: #157a3c; }
+  .artifact-icon.missing { color: #bbb; }
+  .artifact-label { flex: 1; }
+  .artifact-label.missing { color: #999; }
+  .artifact-glob { font-family: ui-monospace, Menlo, monospace; font-size: .75rem; color: #aaa; }
+  .not-earned-tag { font-size: .7rem; color: #aaa; font-style: italic; }
+  .artifact-open { font-size: .82rem; }
+
+  .next-action { margin-top: .9rem; padding: .7rem .9rem; border-radius: 6px; background: #eaf1fb; border: 1px solid #cfe0f5; color: #1c5aa6; font-size: .88rem; }
+  .next-action b { text-transform: uppercase; font-size: .68rem; letter-spacing: .04em; display: block; margin-bottom: .2rem; color: #1c5aa6; }
+
+  .lesson-card { margin-top: .9rem; border-radius: 6px; padding: 1rem; }
+  .lesson-card.locked { border: 1px dashed #bbb; color: #999; font-size: .85rem; }
+  .lesson-card.unlocked { background: #fbf8ee; border: 1px solid #ecdfb0; }
+  .lesson-card.unlocked .lesson-text { font-family: Georgia, "Times New Roman", serif; font-size: 1.2rem; color: #6b5a1e; margin: 0; }
+
+  .concept-graphic { margin-top: 1rem; max-width: 100%; }
+  .concept-graphic img { max-width: 100%; height: auto; display: block; }
+
+  #lesson-reader { display: none; border: 1px solid #ccc; border-radius: 8px; padding: 1.2rem 1.4rem; margin: 1rem 0; background: #fff; }
+  #lesson-reader.open { display: block; }
+  #lesson-reader .reader-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: .8rem; border-bottom: 1px solid #eee; padding-bottom: .5rem; }
+  #lesson-reader .reader-path { font-family: ui-monospace, Menlo, monospace; font-size: .8rem; color: #888; }
+  #lesson-reader .reader-close { cursor: pointer; border: 1px solid #ccc; background: #fff; border-radius: 4px; padding: .2rem .6rem; font-size: .8rem; }
+  #lesson-reader .reader-body { line-height: 1.55; }
+  #lesson-reader .reader-body pre { background: #f7f7f7; padding: .6rem .8rem; border-radius: 6px; overflow-x: auto; }
+  #lesson-reader .reader-body code { background: #f2f2f2; padding: .1rem .3rem; border-radius: 3px; }
 </style>
 </head>
 <body>
 
 <h1>Observability Portal — V0</h1>
-<p class="empty">Reads <code>experiments/</code> and <code>notes/</code> off disk on every request. No database, no auth, localhost only.</p>
+<p class="empty">Reads <code>experiments/</code>, <code>notes/</code>, and <code>course.json</code> off disk on every request. No database, no auth, localhost only.</p>
 
-<h2>Curriculum</h2>
-<p class="empty">Interim overview, hand-maintained until <code>CURRICULUM.md</code> exists (Session 3) — cross-check against <code>README.md</code>/<code>notes/</code> if this looks stale.</p>
-<div id="curriculum" class="curriculum"></div>
+<div id="course-header">
+  <p class="thesis empty" id="course-thesis">Loading course.json…</p>
+  <p class="computed-at" id="course-computed-at"></p>
+</div>
+
+<div class="claims-strip" id="claims-strip"></div>
+
+<div class="spine" id="spine"></div>
+
+<div id="lesson-reader">
+  <div class="reader-bar">
+    <span class="reader-path" id="reader-path"></span>
+    <span class="reader-close" onclick="closeLessonReader()">close ✕</span>
+  </div>
+  <div class="reader-body" id="reader-body"></div>
+</div>
+
+<div id="act-cards"></div>
 
 <h2>Runs</h2>
 <div id="runs"></div>
@@ -75,7 +146,7 @@
     <li>Per-episode latency variance (only aggregate <code>eval_s</code> / <code>eval_ep_s</code> exist)</li>
     <li>Statistical confidence on a success rate (no variance across seeds/N)</li>
   </ul>
-  <p class="empty">This is the Module 4 to-do list, not a bug list — see <code>notes/2026-07-13.md</code> for the full writeup.</p>
+  <p class="empty">This is Act 4's to-do list, not a bug list — see <code>notes/2026-07-13.md</code> for the full writeup.</p>
 </div>
 
 <script>
@@ -163,26 +234,194 @@ async function loadTodos() {
   });
 }
 
-async function loadCurriculum() {
-  const modules = await (await fetch('/api/curriculum')).json();
-  const container = document.getElementById('curriculum');
-  container.innerHTML = '';
-  modules.forEach(m => {
-    const div = document.createElement('div');
-    div.className = 'module-card';
-    const statusLabel = m.status.replace('_', ' ');
-    const link = m.note ? `<a href="/notes/${m.note.split('/').pop()}" target="_blank">${m.note}</a>` : '';
-    div.innerHTML = `
-      <span class="status ${m.status}">${statusLabel}</span>
-      <h3>Module ${m.id} — ${m.title}</h3>
-      <p>${m.summary}</p>
-      ${link ? `<p>${link}</p>` : ''}
+/* ---------- course home ---------- */
+
+let COURSE = null;
+
+async function loadCourse() {
+  const data = await (await fetch('/api/course')).json();
+  if (data.error) {
+    document.getElementById('course-thesis').textContent = `course.json error: ${data.error}`;
+    document.getElementById('claims-strip').innerHTML = '';
+    document.getElementById('spine').innerHTML = '';
+    document.getElementById('act-cards').innerHTML = '';
+    return;
+  }
+  COURSE = data;
+
+  document.getElementById('course-thesis').textContent = data.thesis;
+  document.getElementById('course-thesis').classList.remove('empty');
+  const computedAt = new Date(data.computed_at);
+  document.getElementById('course-computed-at').textContent =
+    `Artifact scan run at ${computedAt.toLocaleString()} — environment: ${data.environment}`;
+
+  renderClaimsStrip(data.acts);
+  renderSpine(data.acts, data.you_are_here);
+  renderActCards(data.acts, data.you_are_here);
+}
+
+function renderClaimsStrip(acts) {
+  const strip = document.getElementById('claims-strip');
+  strip.innerHTML = '';
+  const earned = acts.filter(a => a.status === 'done');
+  const locked = acts.filter(a => a.status !== 'done');
+  earned.forEach(act => {
+    const pill = document.createElement('span');
+    pill.className = 'claim-pill earned';
+    pill.textContent = act.claim;
+    strip.appendChild(pill);
+  });
+  if (locked.length > 0) {
+    const pill = document.createElement('span');
+    pill.className = 'claim-pill locked';
+    pill.textContent = `${locked.length} claim${locked.length === 1 ? '' : 's'} not yet earned`;
+    strip.appendChild(pill);
+  }
+}
+
+function renderSpine(acts, hereId) {
+  const spine = document.getElementById('spine');
+  spine.innerHTML = '';
+  acts.forEach(act => {
+    const seg = document.createElement('div');
+    seg.className = 'spine-segment' + (act.id === hereId ? ' here' : '');
+    seg.innerHTML = `
+      <div class="spine-bar ${act.status}"></div>
+      <div class="spine-label">${act.id}. ${act.short_title}</div>
     `;
-    container.appendChild(div);
+    seg.onclick = () => {
+      expandAct(act.id);
+      document.getElementById(`act-${act.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    spine.appendChild(seg);
   });
 }
 
-loadCurriculum();
+function expandAct(actId) {
+  document.querySelectorAll('.act-card').forEach(el => {
+    el.classList.toggle('expanded', el.id === `act-${actId}`);
+  });
+}
+
+function renderActCards(acts, hereId) {
+  const container = document.getElementById('act-cards');
+  container.innerHTML = '';
+  acts.forEach(act => {
+    const card = document.createElement('div');
+    card.className = 'act-card' + (act.id === hereId ? ' expanded' : '');
+    card.id = `act-${act.id}`;
+
+    const statusLabel = act.status.replace('_', ' ');
+    const hereTag = act.id === hereId ? '<span class="here-tag">you are here</span>' : '';
+
+    const rows = act.artifacts.map(a => artifactRowHtml(a)).join('');
+
+    const firstMissing = act.artifacts.find(a => !a.exists);
+    let actionOrLesson;
+    if (act.status === 'done') {
+      actionOrLesson = `
+        <div class="lesson-card unlocked">
+          <p class="lesson-text">${escapeHtml(act.lesson)}</p>
+        </div>`;
+    } else {
+      const nextText = firstMissing
+        ? (firstMissing.next_action || `Create ${firstMissing.label}`)
+        : '';
+      actionOrLesson = `
+        <div class="next-action"><b>Next action</b>${escapeHtml(nextText)}</div>
+        <div class="lesson-card locked">🔒 Lesson unlocks when all artifacts exist on disk.</div>`;
+    }
+
+    const graphic = act.graphic
+      ? `<div class="concept-graphic"><img src="/${act.graphic.replace(/^static\//, 'assets/')}" alt="Act ${act.id} mechanism diagram"></div>`
+      : '';
+
+    card.innerHTML = `
+      <div class="act-card-header" onclick="toggleAct(${act.id})">
+        <span class="status ${act.status}">${statusLabel}</span>
+        <h3>Act ${act.id} — ${act.title}</h3>
+        ${hereTag}
+        <span class="act-fraction">${act.done_count}/${act.total_count}</span>
+      </div>
+      <div class="act-card-body">
+        <p class="act-question">${escapeHtml(act.question)}</p>
+        <div class="artifact-list">${rows}</div>
+        ${actionOrLesson}
+        ${graphic}
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function artifactRowHtml(a) {
+  if (a.exists) {
+    return `
+      <div class="artifact-row">
+        <span class="artifact-icon exists">✓</span>
+        <span class="artifact-label">${escapeHtml(a.label)}</span>
+        <span class="artifact-open">${openLinkHtml(a)}</span>
+      </div>`;
+  }
+  return `
+    <div class="artifact-row">
+      <span class="artifact-icon missing">○</span>
+      <span class="artifact-label missing">${escapeHtml(a.label)}</span>
+      <span class="not-earned-tag">not yet earned</span>
+      <span class="artifact-glob">${escapeHtml(a.declared_path)}</span>
+    </div>`;
+}
+
+function openLinkHtml(a) {
+  if (!a.link) return '';
+  if (a.link.type === 'lesson') {
+    return `<a href="javascript:void(0)" onclick="openLesson('${a.link.path}', event)">open</a>`;
+  }
+  if (a.link.type === 'experiment') {
+    return `<a href="javascript:void(0)" onclick="openExperiment('${a.link.run_id}', event)">open</a>`;
+  }
+  return `<a href="/repo/${a.link.path}" target="_blank">open</a>`;
+}
+
+function toggleAct(actId) {
+  document.getElementById(`act-${actId}`)?.classList.toggle('expanded');
+}
+
+function openExperiment(runId, evt) {
+  evt.stopPropagation();
+  document.getElementById('runs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  loadRunDetail(runId);
+}
+
+async function openLesson(path, evt) {
+  evt.stopPropagation();
+  const reader = document.getElementById('lesson-reader');
+  const body = document.getElementById('reader-body');
+  document.getElementById('reader-path').textContent = path;
+  body.innerHTML = '<p class="empty">Loading…</p>';
+  reader.classList.add('open');
+  reader.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  try {
+    const res = await fetch(`/repo/${path}`);
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    const text = await res.text();
+    body.innerHTML = marked.parse(text);
+  } catch (e) {
+    body.innerHTML = `<p class="empty">Could not load ${escapeHtml(path)}: ${escapeHtml(String(e))}</p>`;
+  }
+}
+
+function closeLessonReader() {
+  document.getElementById('lesson-reader').classList.remove('open');
+}
+
+function escapeHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s ?? '';
+  return div.innerHTML;
+}
+
+loadCourse();
 loadRuns();
 loadTodos();
 </script>

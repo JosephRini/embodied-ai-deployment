@@ -1,0 +1,27 @@
+<svg viewBox="0 0 600 190" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, sans-serif">
+  <!-- checkpoint declares -->
+  <rect x="20" y="40" width="190" height="100" rx="6" fill="#f7f7f7" stroke="#999" stroke-width="0.5"/>
+  <text x="115" y="60" font-size="13" text-anchor="middle" fill="#333" font-weight="600">checkpoint declares</text>
+  <rect x="35" y="72" width="160" height="26" rx="4" fill="#fff" stroke="#bbb" stroke-width="0.5"/>
+  <text x="115" y="89" font-size="11" text-anchor="middle" fill="#555">3 cameras · 256×256</text>
+  <rect x="35" y="104" width="160" height="26" rx="4" fill="#fff" stroke="#bbb" stroke-width="0.5"/>
+  <text x="115" y="121" font-size="11" text-anchor="middle" fill="#555">state: 6-dim</text>
+
+  <!-- env provides -->
+  <rect x="390" y="40" width="190" height="100" rx="6" fill="#f7f7f7" stroke="#999" stroke-width="0.5"/>
+  <text x="485" y="60" font-size="13" text-anchor="middle" fill="#333" font-weight="600">env provides</text>
+  <rect x="405" y="72" width="160" height="26" rx="4" fill="#fff" stroke="#bbb" stroke-width="0.5"/>
+  <text x="485" y="89" font-size="11" text-anchor="middle" fill="#555">1 camera · 384×384</text>
+  <rect x="405" y="104" width="160" height="26" rx="4" fill="#fff" stroke="#bbb" stroke-width="0.5"/>
+  <text x="485" y="121" font-size="11" text-anchor="middle" fill="#555">state: 2-dim</text>
+
+  <!-- broken link + mismatch mark -->
+  <line x1="212" y1="90" x2="270" y2="90" stroke="#c0392b" stroke-width="0.5" stroke-dasharray="3,3"/>
+  <line x1="330" y1="90" x2="388" y2="90" stroke="#c0392b" stroke-width="0.5" stroke-dasharray="3,3"/>
+  <circle cx="300" cy="90" r="20" fill="#fdecea" stroke="#c0392b" stroke-width="0.5"/>
+  <line x1="291" y1="81" x2="309" y2="99" stroke="#c0392b" stroke-width="1.5"/>
+  <line x1="309" y1="81" x2="291" y2="99" stroke="#c0392b" stroke-width="1.5"/>
+
+  <text x="300" y="130" font-size="11" text-anchor="middle" fill="#c0392b">key + shape mismatch</text>
+  <text x="300" y="164" font-size="12" text-anchor="middle" fill="#666">rejected at the config layer — the weights never run</text>
+</svg>

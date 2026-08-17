@@ -1,0 +1,46 @@
+<svg viewBox="0 0 600 260" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8a6d00"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#157a3c"/>
+    </marker>
+  </defs>
+
+  <!-- cycle edges, shortened to the gaps between nodes so arrowheads stay visible -->
+  <line x1="352.5" y1="68.1" x2="381.5" y2="85.0" stroke="#8a6d00" stroke-width="0.5" marker-end="url(#arrow)"/>
+  <line x1="404" y1="124" x2="404" y2="157" stroke="#8a6d00" stroke-width="0.5" marker-end="url(#arrow)"/>
+  <line x1="381.4" y1="195.8" x2="352.6" y2="212.2" stroke="#8a6d00" stroke-width="0.5" marker-end="url(#arrow)"/>
+  <line x1="307.4" y1="212.2" x2="278.6" y2="195.8" stroke="#8a6d00" stroke-width="0.5" marker-end="url(#arrow)"/>
+  <line x1="256" y1="157" x2="256" y2="124" stroke="#8a6d00" stroke-width="0.5" marker-end="url(#arrow)"/>
+  <line x1="278.5" y1="85.0" x2="307.5" y2="68.1" stroke="#8a6d00" stroke-width="0.5" marker-end="url(#arrow)"/>
+
+  <!-- nodes -->
+  <circle cx="330" cy="55" r="26" fill="#fff3cd" stroke="#8a6d00" stroke-width="0.5"/>
+  <text x="330" y="59" font-size="11" text-anchor="middle" fill="#333">instrument</text>
+
+  <circle cx="404" cy="98" r="26" fill="#fff3cd" stroke="#8a6d00" stroke-width="0.5"/>
+  <text x="404" y="102" font-size="11" text-anchor="middle" fill="#333">perturb</text>
+
+  <circle cx="404" cy="183" r="26" fill="#fff3cd" stroke="#8a6d00" stroke-width="0.5"/>
+  <text x="404" y="187" font-size="11" text-anchor="middle" fill="#333">diagnose</text>
+
+  <circle cx="330" cy="225" r="26" fill="#fff3cd" stroke="#8a6d00" stroke-width="0.5"/>
+  <text x="330" y="229" font-size="11" text-anchor="middle" fill="#333">collect</text>
+
+  <circle cx="256" cy="183" r="26" fill="#fff3cd" stroke="#8a6d00" stroke-width="0.5"/>
+  <text x="256" y="180" font-size="11" text-anchor="middle" fill="#333">fine-</text>
+  <text x="256" y="191" font-size="11" text-anchor="middle" fill="#333">tune</text>
+
+  <circle cx="256" cy="98" r="26" fill="#d7f2df" stroke="#157a3c" stroke-width="0.5"/>
+  <text x="256" y="102" font-size="11" text-anchor="middle" fill="#157a3c">accept</text>
+
+  <!-- exit to acceptance report -->
+  <line x1="230.5" y1="102.0" x2="168" y2="111" stroke="#157a3c" stroke-width="0.5" stroke-dasharray="3,3" marker-end="url(#arrowGreen)"/>
+  <rect x="20" y="90" width="140" height="46" rx="6" fill="#f7f7f7" stroke="#157a3c" stroke-width="0.5"/>
+  <text x="90" y="110" font-size="11" text-anchor="middle" fill="#157a3c">acceptance</text>
+  <text x="90" y="123" font-size="11" text-anchor="middle" fill="#157a3c">report (exit)</text>
+
+  <text x="330" y="256" font-size="12" text-anchor="middle" fill="#666">loops until the report clears the spec</text>
+</svg>
