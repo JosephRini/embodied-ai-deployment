@@ -7,6 +7,7 @@ This repo is a working log, not a finished tutorial. Each notebook runs standalo
 ## Why notebooks
 
 Robot learning has enormous documentation of *how models work* and very little on *what it takes to run one, see inside it, and fix it when it fails*. This repo picks up roughly where the excellent [LeRobot tutorial](https://huggingface.co/docs/lerobot/il_robots) stops: not "how do these architectures work," but "you've been handed a checkpoint you didn't train — now what."
+The [LeRobot tutorial](https://huggingface.co/docs/lerobot/il_robots) is excellent and has real code — it walks you through the full pipeline, record → train → deploy, on physical hardware. This repo doesn't compete with that. It's sim-only, deliberately, and it spends its time on a narrower question the tutorial's single-command pipeline doesn't: when a rollout fails, or a pretrained checkpoint won't run on your task at all, what do you actually do next?
 
 Notebooks, not a framework or a CLI course, because the point is for every intermediate result — a dataset shape, a rendered frame, a loss curve, a failure video — to be something you look at directly, not something a report tells you happened.
 
