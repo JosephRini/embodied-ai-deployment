@@ -1,5 +1,11 @@
 # Observability Portal — V0
 
+> **Superseded (August 2026).** This repo moved to a notebook-first approach
+> in August 2026. This portal and the `course.json` manifest it reads reflect
+> an earlier CLI-based version of the course and are not currently
+> maintained. The code below is left as-is and still runs if you want to
+> look at it.
+
 Read-only eval viewer over `experiments/`. No database, no auth, no
 deployment — binds `127.0.0.1` only. Reads the filesystem fresh on every
 request, so there's nothing to go stale.

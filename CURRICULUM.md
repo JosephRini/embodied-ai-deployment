@@ -1,5 +1,10 @@
 # Curriculum
 
+> **Superseded (August 2026).** This repo moved to a notebook-first approach
+> in August 2026. This document reflects an earlier CLI-based version of the
+> course and is not currently maintained. See the [README](README.md) for
+> the current structure.
+
 Take an open robot policy from checkpoint to a deployable, observable
 system — entirely in simulation — and prove every claim with evidence,
 not a demo video.
