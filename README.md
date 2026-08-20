@@ -39,10 +39,4 @@ Status is honest, not aspirational: 🟡 means real progress exists but the note
 - One environment for parts 1–2 (PushT); a different one for parts 3–4 (Meta-World), because no VLA checkpoint targets PushT — this is documented as a real finding, not glossed over.
 - Model-internals / interpretability work is explicitly out of scope for the core four parts. If it appears, it will be marked as a clearly separate, optional extension — and treated with real caution: internal signals can correlate with a failure without proving it caused it.
 
-## Notes
-
-Session-by-session working notes live in [`notes/`](notes/), dated, unedited. Lesson write-ups referenced from the notebooks live in [`writeups/lessons/`](writeups/lessons/).
-
----
-
 *Every number reported anywhere in this repo is stated with its sample size and, where it means anything, a confidence interval. A success rate without an N is not a result.*
